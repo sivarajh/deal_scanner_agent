@@ -9,8 +9,7 @@ const ICONS: Record<string, string> = {
   load:    '📂',
   filter:  '🔍',
   bankers: '👥',
-  match:   '🎯',
-  brief:   '📝',
+  process: '⚡',
 }
 
 export function StepTracker({ steps, loading }: Props) {

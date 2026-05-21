@@ -9,8 +9,7 @@ const TOOL_TO_STEP: Record<string, string> = {
   load_deals:    'load',
   filter_deals:  'filter',
   get_bankers:   'bankers',
-  match_banker:  'match',
-  generate_brief: 'brief',
+  process_deals: 'process',
 }
 
 function initSteps(): Step[] {

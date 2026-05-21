@@ -53,9 +53,8 @@ export const SIZE_PRESETS = [
 ]
 
 export const PIPELINE_STEPS: Omit<Step, 'status'>[] = [
-  { id: 'load',    label: 'Loading deals',          detail: 'Reading PitchBook data…' },
-  { id: 'filter',  label: 'Filtering by criteria',  detail: 'Applying size & vertical filters…' },
-  { id: 'bankers', label: 'Fetching banker roster',  detail: 'Loading regional bankers…' },
-  { id: 'match',   label: 'Matching bankers',        detail: 'Scoring vertical overlap…' },
-  { id: 'brief',   label: 'Generating deal briefs',  detail: 'Writing briefs & talking points…' },
+  { id: 'load',    label: 'Loading deals',           detail: 'Reading PitchBook data…' },
+  { id: 'filter',  label: 'Filtering by criteria',   detail: 'Applying size & vertical filters…' },
+  { id: 'bankers', label: 'Fetching banker roster',   detail: 'Loading regional bankers…' },
+  { id: 'process', label: 'Matching & generating briefs', detail: 'Scoring verticals and writing briefs…' },
 ]

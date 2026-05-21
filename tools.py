@@ -80,6 +80,31 @@ def match_banker(deal: dict, bankers: list[dict]) -> dict:
     return best_banker
 
 
+def process_deals(deals: list[dict], bankers: list[dict]) -> str:
+    """Match every deal to a banker and generate all deal briefs in one call.
+
+    This is the fast path — use this instead of calling match_banker and
+    generate_brief individually for each deal. Processes all deals in a single
+    Python pass, eliminating N×2 LLM round-trips.
+
+    Args:
+        deals: Filtered list of deals from filter_deals.
+        bankers: Banker roster from get_bankers.
+
+    Returns:
+        All formatted deal briefs concatenated as a single string.
+    """
+    if not deals:
+        return "No deals to process."
+
+    briefs = []
+    for deal in deals:
+        banker = match_banker(deal, bankers)
+        briefs.append(generate_brief(deal, banker))
+
+    return "\n\n".join(briefs)
+
+
 def generate_brief(deal: dict, banker: dict) -> str:
     """Generate a formatted deal brief for a banker."""
     size_display = f"${deal.get('Deal Size', 0):,.0f}M"
