@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from google.adk.agents import Agent
 
@@ -6,14 +7,17 @@ from agent_scan_deal.tools import load_deals, filter_deals, get_bankers, match_b
 
 MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.5-flash")
 
+# Path to the deals file, relative to this package — works regardless of where adk is launched from
+DEALS_FILE = str(Path(__file__).parent / "pitchbook_deals.xlsx")
+
 root_agent = Agent(
     name="deal_scanner_agent",
     model=MODEL,
     description="PitchBook deal scanner that filters deals by size and vertical, matches them to regional bankers, and generates detailed briefs with talking points.",
-    instruction="""You are a deal scanning agent for an investment bank. Your job is to help bankers find relevant deals from PitchBook data.
+    instruction=f"""You are a deal scanning agent for an investment bank. Your job is to help bankers find relevant deals from PitchBook data.
 
 WORKFLOW:
-1. When the user asks about deals, first call load_deals with the file path "C:\\Users\\harih\\Downloads\\pitchbook_deals.xlsx"
+1. When the user asks about deals, first call load_deals with the file path "{DEALS_FILE}"
 2. Call filter_deals with the loaded deals, the minimum deal size (in millions), and the vertical. Deal sizes in the data are in millions — so $5 billion = 5000. If no vertical is specified, use "all".
 3. Call get_bankers to get the banker roster.
 4. For each matching deal, call match_banker to find the best banker.
