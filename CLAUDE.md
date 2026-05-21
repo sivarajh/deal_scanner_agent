@@ -20,6 +20,7 @@ Open http://127.0.0.1:8080 → select `deal_scanner_agent`.
 |------|------|
 | `agent.py` | ADK `root_agent` — model, instruction, tool list |
 | `tools.py` | All 5 tools: `load_deals`, `filter_deals`, `get_bankers`, `match_banker`, `generate_brief` |
+| `pitchbook_deals.xlsx` | Deal data file — loaded via `Path(__file__).parent / "pitchbook_deals.xlsx"` |
 | `.env` | `GOOGLE_API_KEY` (never commit) |
 
 ## Architecture
@@ -39,6 +40,7 @@ root_agent (gemini-2.5-flash)
 - `adk web` must be run from the **parent** directory, not from inside `agent_scan_deal/`
 - Imports in `agent.py` must use the full package path: `from agent_scan_deal.tools import ...`
 - The ADK entry point (`root_agent`) must be named exactly `root_agent` in `agent.py`
+- `pitchbook_deals.xlsx` is bundled in the repo and resolved via `Path(__file__).parent` — no absolute paths needed
 
 ## Adding / Changing Bankers
 
@@ -55,13 +57,13 @@ Edit `get_bankers()` in `tools.py`. Each banker dict needs:
 
 ## Changing the Data Source
 
-The file path is hardcoded in the agent instruction in `agent.py`. Update:
+The deal file path is resolved at import time using:
 
 ```python
-instruction="""...call load_deals with the file path "C:\\path\\to\\your\\file.xlsx"..."""
+DEALS_FILE = str(Path(__file__).parent / "pitchbook_deals.xlsx")
 ```
 
-Or make it dynamic by removing the hardcoded path and letting the user provide it per session.
+To use a different file, replace `pitchbook_deals.xlsx` in the project folder, or change the filename in `DEALS_FILE` in `agent.py`. The path is injected into the agent instruction via the f-string so the LLM always knows where to load from.
 
 ## Adding Email Sending
 

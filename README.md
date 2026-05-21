@@ -13,12 +13,13 @@ A Google ADK agent that scans PitchBook deal data, filters deals by size and ver
 
 ```
 agent_scan_deal/
-├── agent.py          # Google ADK root agent definition
-├── tools.py          # Tool functions: load, filter, match, brief
-├── __init__.py       # Python package marker
-├── requirements.txt  # Dependencies
-├── .env              # API keys (not committed — create locally)
-└── README.md         # This file
+├── agent.py               # Google ADK root agent definition
+├── tools.py               # Tool functions: load, filter, match, brief
+├── pitchbook_deals.xlsx   # Sample deal data (27 deals, included in repo)
+├── __init__.py            # Python package marker
+├── requirements.txt       # Dependencies
+├── .env                   # API keys (not committed — create locally)
+└── README.md              # This file
 ```
 
 ## Setup
@@ -46,15 +47,9 @@ GOOGLE_API_KEY=your_google_api_key_here
 
 Get a key at [https://aistudio.google.com](https://aistudio.google.com).
 
-### 4. Update the deal file path (optional)
+### 4. Deal data file
 
-By default the agent looks for the Excel file at:
-
-```
-C:\Users\harih\Downloads\pitchbook_deals.xlsx
-```
-
-To use a different path, tell the agent the path when you start a conversation, or update the default path in `agent.py`.
+The PitchBook deals file (`pitchbook_deals.xlsx`) is included in the repo and loaded automatically — no path configuration needed. To use your own file, replace `pitchbook_deals.xlsx` in the project folder with your export.
 
 ## Running the Agent
 
