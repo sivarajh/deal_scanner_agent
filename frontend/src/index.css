@@ -4,21 +4,56 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    @apply bg-[#0a0f1e] text-slate-100 antialiased;
   }
 }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50%       { opacity: 0; }
 }
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.6; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.animate-slide-in   { animation: slide-in 0.35s ease both; }
 
 .cursor-blink {
   display: inline-block;
-  width: 2px;
-  height: 1em;
-  background: currentColor;
+  width: 2px; height: 1.1em;
+  background: #818cf8;
   margin-left: 2px;
   vertical-align: text-bottom;
+  border-radius: 1px;
   animation: blink 1s step-end infinite;
+}
+
+.step-dot-active {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+/* Gradient border card */
+.card-gradient {
+  background: linear-gradient(135deg, #1e2540, #141929);
+  border: 1px solid #2a3356;
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #6366f1, #a78bfa, #6366f1);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2.5s linear infinite;
 }

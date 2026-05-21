@@ -7,16 +7,16 @@ interface Props {
 }
 
 export function QueryForm({ onSubmit, loading }: Props) {
-  const [vertical, setVertical] = useState<VerticalOption>('All Verticals')
+  const [vertical,  setVertical]  = useState<VerticalOption>('All Verticals')
   const [sizeInput, setSizeInput] = useState<string>('1000')
 
   function buildQuery() {
     const size = parseFloat(sizeInput) || 1000
-    const verticalLabel = vertical === 'All Verticals' ? 'all' : vertical
-    if (verticalLabel === 'all') {
+    const v    = vertical === 'All Verticals' ? 'all' : vertical
+    if (v === 'all') {
       return `Find all deals greater than ${size} million and match them to bankers with full deal briefs and talking points.`
     }
-    return `Find all ${verticalLabel} deals greater than ${size} million and match them to bankers with full deal briefs and talking points.`
+    return `Find all ${v} deals greater than ${size} million and match them to bankers with full deal briefs and talking points.`
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -25,22 +25,23 @@ export function QueryForm({ onSubmit, loading }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Vertical selector */}
+    <form onSubmit={handleSubmit} className="space-y-6">
+
+      {/* Vertical */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-3">
           Vertical
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {VERTICALS.map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => setVertical(v)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150 ${
                 vertical === v
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 ring-1 ring-indigo-500'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 ring-1 ring-slate-700'
               }`}
             >
               {v}
@@ -49,54 +50,55 @@ export function QueryForm({ onSubmit, loading }: Props) {
         </div>
       </div>
 
-      {/* Deal size */}
+      {/* Size */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-3">
           Minimum Deal Size
         </label>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2">
-            {SIZE_PRESETS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => setSizeInput(String(p.value))}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  sizeInput === String(p.value)
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 flex-1 max-w-[180px]">
-            <span className="text-slate-500 text-sm">$</span>
-            <input
-              type="number"
-              value={sizeInput}
-              onChange={(e) => setSizeInput(e.target.value)}
-              placeholder="e.g. 500"
-              min={0}
-              className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <span className="text-slate-500 text-sm whitespace-nowrap">M</span>
-          </div>
+        <div className="flex gap-1.5 mb-2.5">
+          {SIZE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setSizeInput(String(p.value))}
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ${
+                sizeInput === String(p.value)
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-500'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 ring-1 ring-slate-700'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-600 text-sm font-mono">$</span>
+          <input
+            type="number"
+            value={sizeInput}
+            onChange={(e) => setSizeInput(e.target.value)}
+            placeholder="e.g. 500"
+            min={0}
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          />
+          <span className="text-slate-600 text-sm">M</span>
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="border-t border-slate-800" />
+
       {/* Query preview */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-md px-4 py-3">
-        <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wider">Query</p>
-        <p className="text-sm text-slate-300 italic">{buildQuery()}</p>
+      <div className="rounded-lg bg-slate-800/40 ring-1 ring-slate-700/50 px-4 py-3">
+        <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-1.5">Query preview</p>
+        <p className="text-xs text-slate-400 italic leading-relaxed">{buildQuery()}</p>
       </div>
 
       {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 ring-1 ring-indigo-500"
       >
         {loading ? (
           <>
@@ -104,10 +106,10 @@ export function QueryForm({ onSubmit, loading }: Props) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            Scanning deals...
+            Scanning…
           </>
         ) : (
-          '🔍 Scan Deals'
+          <>🔍 Scan Deals</>
         )}
       </button>
     </form>

@@ -9,12 +9,13 @@ export interface RunRequest {
   streaming: boolean
 }
 
-export interface AgentEvent {
-  content?: {
-    parts?: Array<{ text?: string }>
-    role?: string
-  }
-  error?: string
+export type StepStatus = 'pending' | 'active' | 'done'
+
+export interface Step {
+  id: string
+  label: string
+  detail?: string
+  status: StepStatus
 }
 
 export type VerticalOption =
@@ -47,6 +48,14 @@ export const VERTICALS: VerticalOption[] = [
 export const SIZE_PRESETS = [
   { label: '$100M', value: 100 },
   { label: '$500M', value: 500 },
-  { label: '$1B', value: 1000 },
-  { label: '$5B', value: 5000 },
+  { label: '$1B',   value: 1000 },
+  { label: '$5B',   value: 5000 },
+]
+
+export const PIPELINE_STEPS: Omit<Step, 'status'>[] = [
+  { id: 'load',    label: 'Loading deals',          detail: 'Reading PitchBook data…' },
+  { id: 'filter',  label: 'Filtering by criteria',  detail: 'Applying size & vertical filters…' },
+  { id: 'bankers', label: 'Fetching banker roster',  detail: 'Loading regional bankers…' },
+  { id: 'match',   label: 'Matching bankers',        detail: 'Scoring vertical overlap…' },
+  { id: 'brief',   label: 'Generating deal briefs',  detail: 'Writing briefs & talking points…' },
 ]
