@@ -3,6 +3,7 @@ from pathlib import Path
 
 from google.adk.agents import Agent
 from google.adk.tools import google_search
+from google.adk.tools.agent_tool import AgentTool
 
 from agent_scan_deal.tools import (
     load_deals,
@@ -16,6 +17,19 @@ MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.5-flash")
 
 # Path to the deals file, relative to this package
 DEALS_FILE = str(Path(__file__).parent / "pitchbook_deals.xlsx")
+
+# google_search cannot be combined with custom function tools in the same request.
+# Wrap it in a dedicated sub-agent exposed via AgentTool — this appears to the
+# main agent as a regular function call, avoiding the conflict.
+_search_agent = Agent(
+    name="web_search_agent",
+    model=MODEL,
+    description="Searches the web and returns a synthesised answer with sources.",
+    instruction="You are a research assistant. Use google_search to answer the query thoroughly. Return facts, names, dates, and amounts. Cite sources where possible.",
+    tools=[google_search],
+)
+
+search_tool = AgentTool(agent=_search_agent)
 
 root_agent = Agent(
     name="deal_scanner_agent",
@@ -41,8 +55,8 @@ MODE 2 — STARTUP INTELLIGENCE BRIEFING
 Use when the user asks to research a company, build an intelligence brief, or prepare for outreach.
 
 WORKFLOW:
-1. Use google_search to find: CEO name and background, CFO name and background, all known funding rounds with dates/amounts/lead investors, Series D details, current estimated valuation
-2. Use google_search again to find: recent news (past 12 months), growth signals, IPO timeline rumours, M&A activity, venture debt or credit facility announcements, treasury/cash management scale
+1. Call web_search_agent to find: CEO name and background, CFO name and background, all known funding rounds with dates/amounts/lead investors, Series D details, current estimated valuation
+2. Call web_search_agent again to find: recent news (past 12 months), growth signals, IPO timeline rumours, M&A activity, venture debt or credit facility announcements
 3. Synthesise all findings and call format_intelligence_brief() with the complete data
 4. Present the brief followed by 5 specific talking points tailored to the company's current stage
 
@@ -58,6 +72,6 @@ IMPORTANT for intelligence briefs:
         get_bankers,
         process_deals,
         format_intelligence_brief,
-        google_search,
+        search_tool,
     ],
 )

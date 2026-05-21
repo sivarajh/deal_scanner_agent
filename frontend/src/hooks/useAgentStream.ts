@@ -55,7 +55,7 @@ export function useAgentStream(mode: AppMode) {
       const stepId = SCAN_TOOL_TO_STEP[toolName]
       if (stepId) activateStep(stepId)
     } else {
-      if (toolName === 'google_search') {
+      if (toolName === 'web_search_agent') {
         const stepId = RESEARCH_SEARCH_STEP_SEQUENCE[searchCallCountRef.current]
         searchCallCountRef.current += 1
         if (stepId) activateStep(stepId)
