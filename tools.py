@@ -148,3 +148,59 @@ SUGGESTED TALKING POINTS
 ================================================================================
 """
     return brief.strip()
+
+
+def format_intelligence_brief(
+    company_name: str,
+    ceo: str,
+    cfo: str,
+    investors: str,
+    funding_rounds: str,
+    estimated_valuation: str,
+    capital_needs: str,
+    outreach_strategy: str,
+) -> str:
+    """Format a structured intelligence brief for a Series D startup.
+
+    Call this after using google_search to gather all the required data.
+    Each parameter should be a concise summary of the researched information.
+
+    Args:
+        company_name: Full legal name of the company.
+        ceo: CEO name, background, and relevant career highlights.
+        cfo: CFO name, background, and relevant career highlights (use 'Not publicly disclosed' if unknown).
+        investors: Lead investors from Series D and prior rounds with fund names and known check sizes.
+        funding_rounds: Chronological list of all known funding rounds with dates, amounts, and lead investors.
+        estimated_valuation: Current estimated valuation with methodology (last round post-money, comparable multiples, etc.).
+        capital_needs: Analysis of likely capital needs: venture debt, treasury management, IPO readiness, or M&A support.
+        outreach_strategy: Targeted outreach recommendations tailored to growth stage, exec profiles, and capital needs.
+
+    Returns:
+        Fully formatted intelligence brief string.
+    """
+    brief = f"""
+================================================================================
+INTELLIGENCE BRIEF: {company_name}
+================================================================================
+
+EXECUTIVE PROFILE
+  CEO: {ceo}
+  CFO: {cfo}
+
+LEAD INVESTORS
+  {investors}
+
+FUNDING HISTORY
+  {funding_rounds}
+
+VALUATION ANALYSIS
+  {estimated_valuation}
+
+CAPITAL NEEDS ASSESSMENT
+  {capital_needs}
+
+OUTREACH STRATEGY
+  {outreach_strategy}
+================================================================================
+"""
+    return brief.strip()

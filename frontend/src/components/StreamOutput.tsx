@@ -34,6 +34,8 @@ export function StreamOutput({ output, loading, error }: Props) {
       {briefs.map((block, i) =>
         block.type === 'summary' ? (
           <SummaryBlock key={i} text={block.text} loading={loading && i === briefs.length - 1} />
+        ) : block.type === 'intel' ? (
+          <IntelligenceBriefCard key={i} text={block.text} />
         ) : (
           <DealBriefCard key={i} text={block.text} index={block.index ?? i} />
         ),
@@ -52,7 +54,7 @@ export function StreamOutput({ output, loading, error }: Props) {
 // ─── Parsers ────────────────────────────────────────────────────────────────
 
 interface Block {
-  type: 'summary' | 'brief'
+  type: 'summary' | 'brief' | 'intel'
   text: string
   index?: number
 }
@@ -70,16 +72,16 @@ function parseBriefs(raw: string): Block[] {
 
   while (i < segments.length) {
     const seg = segments[i]
-    if (seg.trimStart().startsWith('DEAL BRIEF:')) {
+    if (seg.trimStart().startsWith('DEAL BRIEF:') || seg.trimStart().startsWith('INTELLIGENCE BRIEF:')) {
       // Flush accumulated summary text before this brief
       const summaryText = summaryParts.join('\n').trim()
       if (summaryText) blocks.push({ type: 'summary', text: summaryText })
       summaryParts.length = 0
 
-      // Next segment is the brief body
+      const isIntel = seg.trimStart().startsWith('INTELLIGENCE BRIEF:')
       const body = segments[i + 1] ?? ''
-      blocks.push({ type: 'brief', text: `${seg.trim()}\n${body}`, index: briefIdx++ })
-      i += 2 // consume title + body segments together
+      blocks.push({ type: isIntel ? 'intel' : 'brief', text: `${seg.trim()}\n${body}`, index: briefIdx++ })
+      i += 2
     } else {
       summaryParts.push(seg)
       i++
@@ -236,6 +238,103 @@ function DealBriefCard({ text, index }: { text: string; index: number }) {
     </div>
   )
 }
+
+// ─── Intelligence Brief Card ─────────────────────────────────────────────────
+
+const INTEL_SECTION_META: Record<string, { icon: string; color: string; accent: string }> = {
+  'EXECUTIVE PROFILE':       { icon: '👤', color: 'text-violet-300', accent: 'bg-violet-500/10 border-violet-500/30' },
+  'LEAD INVESTORS':          { icon: '💰', color: 'text-amber-300',  accent: 'bg-amber-500/10  border-amber-500/30'  },
+  'FUNDING HISTORY':         { icon: '📊', color: 'text-sky-300',    accent: 'bg-sky-500/10    border-sky-500/30'    },
+  'VALUATION ANALYSIS':      { icon: '📈', color: 'text-emerald-300',accent: 'bg-emerald-500/10 border-emerald-500/30'},
+  'CAPITAL NEEDS ASSESSMENT':{ icon: '🎯', color: 'text-rose-300',   accent: 'bg-rose-500/10   border-rose-500/30'   },
+  'OUTREACH STRATEGY':       { icon: '📬', color: 'text-indigo-300', accent: 'bg-indigo-500/10 border-indigo-500/30' },
+}
+
+function IntelligenceBriefCard({ text }: { text: string }) {
+  const lines  = text.split('\n')
+  const title  = (lines[0] ?? '').replace('INTELLIGENCE BRIEF:', '').trim()
+  const sections = parseIntelSections(lines.slice(1))
+
+  return (
+    <div className="animate-slide-in rounded-xl border border-violet-700/40 bg-slate-900/70 overflow-hidden shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center gap-4 px-6 py-4 bg-gradient-to-r from-violet-900/50 to-slate-900/0 border-b border-violet-800/40">
+        <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center shrink-0">
+          <span className="text-xl">🔎</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest mb-0.5">
+            Intelligence Brief
+          </p>
+          <h3 className="text-base font-bold text-slate-100 truncate">{title}</h3>
+        </div>
+      </div>
+
+      {/* Sections */}
+      <div className="divide-y divide-slate-800/50">
+        {sections.map(({ heading, rows }) => {
+          const meta = INTEL_SECTION_META[heading] ?? { icon: '📄', color: 'text-slate-400', accent: 'bg-slate-800 border-slate-700' }
+          return (
+            <div key={heading} className="px-6 py-4">
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border mb-3 ${meta.accent}`}>
+                <span className="text-sm">{meta.icon}</span>
+                <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.color}`}>{heading}</p>
+              </div>
+              <div className="space-y-2 pl-1">
+                {rows.map((row, i) => {
+                  if (!row.trim()) return null
+                  // Key: value (e.g. "  CEO: John Smith")
+                  const kvMatch = row.match(/^\s{0,6}([A-Za-z ]+?):\s+(.+)$/)
+                  if (kvMatch) {
+                    return (
+                      <div key={i} className="flex gap-3 text-sm">
+                        <span className="text-slate-500 shrink-0 w-24 text-right font-medium">{kvMatch[1]}</span>
+                        <span className="text-slate-200">{kvMatch[2]}</span>
+                      </div>
+                    )
+                  }
+                  // Numbered points
+                  const numMatch = row.match(/^\s*(\d+)\.\s+(.+)$/)
+                  if (numMatch) {
+                    return (
+                      <div key={i} className="flex gap-3">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-violet-500/20 border border-violet-500/30 text-[10px] font-bold text-violet-400 flex items-center justify-center mt-0.5">
+                          {numMatch[1]}
+                        </span>
+                        <p className="text-sm text-slate-300 leading-relaxed">{numMatch[2]}</p>
+                      </div>
+                    )
+                  }
+                  return <p key={i} className="text-sm text-slate-300 leading-relaxed">{row.trim()}</p>
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function parseIntelSections(lines: string[]): Array<{ heading: string; rows: string[] }> {
+  const sections: Array<{ heading: string; rows: string[] }> = []
+  let current: { heading: string; rows: string[] } | null = null
+
+  for (const line of lines) {
+    if (/^={5,}/.test(line.trim())) continue
+    const trimmed = line.trim()
+    if (INTEL_SECTION_META[trimmed]) {
+      if (current) sections.push(current)
+      current = { heading: trimmed, rows: [] }
+      continue
+    }
+    if (current) current.rows.push(line)
+  }
+  if (current) sections.push(current)
+  return sections
+}
+
+// ─── Deal Brief Sections ─────────────────────────────────────────────────────
 
 function parseSections(lines: string[]): Array<{ heading: string; rows: string[] }> {
   const sections: Array<{ heading: string; rows: string[] }> = []

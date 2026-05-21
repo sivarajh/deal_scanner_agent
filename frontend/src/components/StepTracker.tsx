@@ -6,10 +6,17 @@ interface Props {
 }
 
 const ICONS: Record<string, string> = {
-  load:    '📂',
-  filter:  '🔍',
-  bankers: '👥',
-  process: '⚡',
+  // Deal scanner
+  load:      '📂',
+  filter:    '🔍',
+  bankers:   '👥',
+  process:   '⚡',
+  // Intelligence briefing
+  profile:   '👤',
+  funding:   '💰',
+  valuation: '📈',
+  needs:     '🎯',
+  brief:     '📝',
 }
 
 export function StepTracker({ steps, loading }: Props) {

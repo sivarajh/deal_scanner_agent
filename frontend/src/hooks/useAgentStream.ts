@@ -1,41 +1,47 @@
 import { useRef, useState } from 'react'
 import { createSession, streamRun } from '../api/adkClient'
-import { PIPELINE_STEPS, type Step } from '../types'
+import { SCAN_PIPELINE_STEPS, RESEARCH_PIPELINE_STEPS, type AppMode, type Step } from '../types'
 
 const USER_ID = 'banker-1'
 
-/** Map ADK tool function names → pipeline step IDs */
-const TOOL_TO_STEP: Record<string, string> = {
+// Deal scanner: one tool call = one step
+const SCAN_TOOL_TO_STEP: Record<string, string> = {
   load_deals:    'load',
   filter_deals:  'filter',
   get_bankers:   'bankers',
   process_deals: 'process',
 }
 
-function initSteps(): Step[] {
-  return PIPELINE_STEPS.map((s) => ({ ...s, status: 'pending' }))
+// Research: google_search fires 2-3 times; map call count → step
+// call 1 → profile, call 2 → funding, call 3 → valuation+needs
+const RESEARCH_SEARCH_STEP_SEQUENCE = ['profile', 'funding', 'valuation', 'needs']
+
+function initSteps(mode: AppMode): Step[] {
+  const defs = mode === 'scan' ? SCAN_PIPELINE_STEPS : RESEARCH_PIPELINE_STEPS
+  return defs.map((s) => ({ ...s, status: 'pending' }))
 }
 
-export function useAgentStream() {
+export function useAgentStream(mode: AppMode) {
   const [output,  setOutput]  = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
-  const [steps,   setSteps]   = useState<Step[]>(initSteps())
+  const [steps,   setSteps]   = useState<Step[]>(initSteps(mode))
 
-  const sessionIdRef  = useRef<string | null>(null)
-  const doneStepsRef  = useRef<Set<string>>(new Set())
+  const sessionIdRef        = useRef<string | null>(null)
+  const doneStepsRef        = useRef<Set<string>>(new Set())
+  const searchCallCountRef  = useRef(0)
 
-  /** Advance the tracker: mark this step active, all prior steps done */
   function activateStep(id: string) {
-    if (doneStepsRef.current.has(id)) return  // already processed
+    if (doneStepsRef.current.has(id)) return
     doneStepsRef.current.add(id)
 
     setSteps((prev) => {
       const targetIdx = prev.findIndex((s) => s.id === id)
+      if (targetIdx === -1) return prev
       return prev.map((s, i) => {
         if (i < targetIdx) return { ...s, status: 'done' }
         if (i === targetIdx) return { ...s, status: 'active' }
-        return s  // keep pending
+        return s
       })
     })
   }
@@ -44,12 +50,28 @@ export function useAgentStream() {
     setSteps((prev) => prev.map((s) => ({ ...s, status: 'done' })))
   }
 
+  function handleToolCall(toolName: string) {
+    if (mode === 'scan') {
+      const stepId = SCAN_TOOL_TO_STEP[toolName]
+      if (stepId) activateStep(stepId)
+    } else {
+      if (toolName === 'google_search') {
+        const stepId = RESEARCH_SEARCH_STEP_SEQUENCE[searchCallCountRef.current]
+        searchCallCountRef.current += 1
+        if (stepId) activateStep(stepId)
+      } else if (toolName === 'format_intelligence_brief') {
+        activateStep('brief')
+      }
+    }
+  }
+
   async function submit(query: string) {
     setOutput('')
     setError(null)
     setLoading(true)
-    setSteps(initSteps())
-    doneStepsRef.current = new Set()
+    setSteps(initSteps(mode))
+    doneStepsRef.current      = new Set()
+    searchCallCountRef.current = 0
 
     try {
       if (!sessionIdRef.current) {
@@ -60,23 +82,10 @@ export function useAgentStream() {
         sessionIdRef.current,
         USER_ID,
         query,
-        // onText — append model text directly to output
-        (text) => setOutput((prev) => prev + text),
-        // onToolCall — advance pipeline step based on which tool was called
-        (toolName) => {
-          const stepId = TOOL_TO_STEP[toolName]
-          if (stepId) activateStep(stepId)
-        },
-        // onDone
-        () => {
-          completeAllSteps()
-          setLoading(false)
-        },
-        // onError
-        (err) => {
-          setError(err)
-          setLoading(false)
-        },
+        (text)     => setOutput((prev) => prev + text),
+        (toolName) => handleToolCall(toolName),
+        ()         => { completeAllSteps(); setLoading(false) },
+        (err)      => { setError(err);      setLoading(false) },
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -87,9 +96,10 @@ export function useAgentStream() {
   function reset() {
     setOutput('')
     setError(null)
-    setSteps(initSteps())
-    doneStepsRef.current = new Set()
-    sessionIdRef.current = null
+    setSteps(initSteps(mode))
+    doneStepsRef.current       = new Set()
+    searchCallCountRef.current = 0
+    sessionIdRef.current       = null
   }
 
   return { output, loading, error, steps, submit, reset }
