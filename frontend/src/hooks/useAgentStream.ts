@@ -4,19 +4,17 @@ import { PIPELINE_STEPS, type Step } from '../types'
 
 const USER_ID = 'banker-1'
 
-function initSteps(): Step[] {
-  return PIPELINE_STEPS.map((s) => ({ ...s, status: 'pending' }))
+/** Map ADK tool function names → pipeline step IDs */
+const TOOL_TO_STEP: Record<string, string> = {
+  load_deals:    'load',
+  filter_deals:  'filter',
+  get_bankers:   'bankers',
+  match_banker:  'match',
+  generate_brief: 'brief',
 }
 
-/** Detect which pipeline step a chunk of text corresponds to */
-function detectStep(text: string): string | null {
-  const t = text.toLowerCase()
-  if (t.includes('load_deals'))         return 'load'
-  if (t.includes('filter_deals'))       return 'filter'
-  if (t.includes('get_bankers'))        return 'bankers'
-  if (t.includes('match_banker'))       return 'match'
-  if (t.includes('generate_brief'))     return 'brief'
-  return null
+function initSteps(): Step[] {
+  return PIPELINE_STEPS.map((s) => ({ ...s, status: 'pending' }))
 }
 
 export function useAgentStream() {
@@ -25,25 +23,25 @@ export function useAgentStream() {
   const [error,   setError]   = useState<string | null>(null)
   const [steps,   setSteps]   = useState<Step[]>(initSteps())
 
-  const sessionIdRef   = useRef<string | null>(null)
-  const activeStepRef  = useRef<string | null>(null)
+  const sessionIdRef  = useRef<string | null>(null)
+  const doneStepsRef  = useRef<Set<string>>(new Set())
 
-  function markStep(id: string) {
-    if (activeStepRef.current === id) return
-    activeStepRef.current = id
-    setSteps((prev) =>
-      prev.map((s) => {
-        if (s.id === id)                                   return { ...s, status: 'active' }
-        // mark all earlier steps done
-        const idx      = prev.findIndex((x) => x.id === id)
-        const sIdx     = prev.findIndex((x) => x.id === s.id)
-        if (sIdx < idx && s.status !== 'done')            return { ...s, status: 'done' }
-        return s
-      }),
-    )
+  /** Advance the tracker: mark this step active, all prior steps done */
+  function activateStep(id: string) {
+    if (doneStepsRef.current.has(id)) return  // already processed
+    doneStepsRef.current.add(id)
+
+    setSteps((prev) => {
+      const targetIdx = prev.findIndex((s) => s.id === id)
+      return prev.map((s, i) => {
+        if (i < targetIdx) return { ...s, status: 'done' }
+        if (i === targetIdx) return { ...s, status: 'active' }
+        return s  // keep pending
+      })
+    })
   }
 
-  function completeSteps() {
+  function completeAllSteps() {
     setSteps((prev) => prev.map((s) => ({ ...s, status: 'done' })))
   }
 
@@ -52,10 +50,7 @@ export function useAgentStream() {
     setError(null)
     setLoading(true)
     setSteps(initSteps())
-    activeStepRef.current = null
-
-    // Auto-activate first step immediately so progress is visible
-    markStep('load')
+    doneStepsRef.current = new Set()
 
     try {
       if (!sessionIdRef.current) {
@@ -66,19 +61,19 @@ export function useAgentStream() {
         sessionIdRef.current,
         USER_ID,
         query,
-        (chunk) => {
-          // Detect tool calls to advance the progress tracker
-          const stepId = detectStep(chunk)
-          if (stepId) markStep(stepId)
-          // Only append model text (not tool call JSON noise)
-          if (!chunk.startsWith('{"')) {
-            setOutput((prev) => prev + chunk)
-          }
+        // onText — append model text directly to output
+        (text) => setOutput((prev) => prev + text),
+        // onToolCall — advance pipeline step based on which tool was called
+        (toolName) => {
+          const stepId = TOOL_TO_STEP[toolName]
+          if (stepId) activateStep(stepId)
         },
+        // onDone
         () => {
-          completeSteps()
+          completeAllSteps()
           setLoading(false)
         },
+        // onError
         (err) => {
           setError(err)
           setLoading(false)
@@ -94,8 +89,8 @@ export function useAgentStream() {
     setOutput('')
     setError(null)
     setSteps(initSteps())
-    sessionIdRef.current  = null
-    activeStepRef.current = null
+    doneStepsRef.current = new Set()
+    sessionIdRef.current = null
   }
 
   return { output, loading, error, steps, submit, reset }

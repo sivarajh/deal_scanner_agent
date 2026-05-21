@@ -15,7 +15,8 @@ export async function streamRun(
   sessionId: string,
   userId: string,
   message: string,
-  onChunk: (text: string) => void,
+  onText: (text: string) => void,
+  onToolCall: (toolName: string) => void,
   onDone: () => void,
   onError: (err: string) => void,
 ): Promise<void> {
@@ -39,7 +40,7 @@ export async function streamRun(
     return
   }
 
-  const reader = res.body.getReader()
+  const reader  = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
 
@@ -58,15 +59,23 @@ export async function streamRun(
 
       try {
         const event = JSON.parse(raw)
-        // Extract text from content parts
-        const parts = event?.content?.parts ?? []
-        for (const part of parts) {
+        const parts: unknown[] = event?.content?.parts ?? []
+
+        for (const part of parts as Record<string, unknown>[]) {
+          // Plain text from the model
           if (typeof part.text === 'string' && part.text) {
-            onChunk(part.text)
+            onText(part.text)
+          }
+          // Tool call — agent is about to invoke a function
+          if (part.functionCall && typeof part.functionCall === 'object') {
+            const fc = part.functionCall as Record<string, unknown>
+            if (typeof fc.name === 'string') {
+              onToolCall(fc.name)
+            }
           }
         }
       } catch {
-        // Non-JSON line — skip
+        // Non-JSON SSE line — skip
       }
     }
   }
