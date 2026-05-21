@@ -11,6 +11,14 @@ export async function createSession(userId: string): Promise<string> {
   return data.id as string
 }
 
+/** True if a text chunk looks like a brief being echoed by the model */
+function isBriefEcho(text: string): boolean {
+  const t = text.trimStart()
+  return t.startsWith('================') ||
+         t.startsWith('INTELLIGENCE BRIEF:') ||
+         t.startsWith('DEAL BRIEF:')
+}
+
 export async function streamRun(
   sessionId: string,
   userId: string,
@@ -27,10 +35,7 @@ export async function streamRun(
       app_name: APP_NAME,
       user_id: userId,
       session_id: sessionId,
-      new_message: {
-        role: 'user',
-        parts: [{ text: message }],
-      },
+      new_message: { role: 'user', parts: [{ text: message }] },
       streaming: true,
     }),
   })
@@ -43,6 +48,9 @@ export async function streamRun(
   const reader  = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  // Once we've received the formatted brief from functionResponse, suppress
+  // any model-text echo of the same content.
+  let briefEmitted = false
 
   while (true) {
     const { done, value } = await reader.read()
@@ -59,32 +67,38 @@ export async function streamRun(
 
       try {
         const event = JSON.parse(raw)
-
         const parts: unknown[] = event?.content?.parts ?? []
 
         for (const part of parts as Record<string, unknown>[]) {
-          // functionResponse: only surface output from format_intelligence_brief
-          // and process_deals — skip raw search results to avoid noise/duplicates.
+
+          // ── functionResponse ──────────────────────────────────────────────
           if (part.functionResponse && typeof part.functionResponse === 'object') {
-            const fr = part.functionResponse as Record<string, unknown>
+            const fr   = part.functionResponse as Record<string, unknown>
             const name = fr.name as string
+            // Only surface the two tools that produce user-visible formatted text
             if (name === 'format_intelligence_brief' || name === 'process_deals') {
-              const output = (fr.response as Record<string, unknown>)?.output
-              if (typeof output === 'string' && output) onText(output)
+              const resp   = fr.response as Record<string, unknown>
+              const output = resp?.output ?? resp?.result ?? resp?.content
+              if (typeof output === 'string' && output.trim()) {
+                onText(output)
+                briefEmitted = true
+              }
             }
+            continue // never show raw functionResponse parts as model text
+          }
+
+          // ── functionCall ──────────────────────────────────────────────────
+          if (part.functionCall && typeof part.functionCall === 'object') {
+            const fc = part.functionCall as Record<string, unknown>
+            if (typeof fc.name === 'string') onToolCall(fc.name)
             continue
           }
 
-          // Plain text from the model
+          // ── model text ────────────────────────────────────────────────────
           if (typeof part.text === 'string' && part.text) {
+            // Suppress brief echoes when we already have the content from functionResponse
+            if (briefEmitted && isBriefEcho(part.text)) continue
             onText(part.text)
-          }
-          // Tool call — agent is about to invoke a function
-          if (part.functionCall && typeof part.functionCall === 'object') {
-            const fc = part.functionCall as Record<string, unknown>
-            if (typeof fc.name === 'string') {
-              onToolCall(fc.name)
-            }
           }
         }
       } catch {
