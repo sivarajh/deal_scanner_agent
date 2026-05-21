@@ -59,19 +59,37 @@ interface Block {
 
 function parseBriefs(raw: string): Block[] {
   const blocks: Block[] = []
-  // Split at each occurrence of the === separator
-  const parts = raw.split(/(?=={10,})/)
-  let briefIdx = 0
 
-  for (const part of parts) {
-    const trimmed = part.trim()
-    if (!trimmed) continue
-    if (trimmed.startsWith('===')) {
-      blocks.push({ type: 'brief', text: trimmed, index: briefIdx++ })
+  // Each brief is wrapped in ===...=== separator lines.
+  // Split on separator lines (10+ equals signs on their own line) to get segments
+  // between them: ["preamble", "DEAL BRIEF: Co1", "body1", "", "DEAL BRIEF: Co2", "body2", ...]
+  const segments = raw.split(/\n?={10,}\n?/)
+  let briefIdx = 0
+  let i = 0
+  const summaryParts: string[] = []
+
+  while (i < segments.length) {
+    const seg = segments[i]
+    if (seg.trimStart().startsWith('DEAL BRIEF:')) {
+      // Flush accumulated summary text before this brief
+      const summaryText = summaryParts.join('\n').trim()
+      if (summaryText) blocks.push({ type: 'summary', text: summaryText })
+      summaryParts.length = 0
+
+      // Next segment is the brief body
+      const body = segments[i + 1] ?? ''
+      blocks.push({ type: 'brief', text: `${seg.trim()}\n${body}`, index: briefIdx++ })
+      i += 2 // consume title + body segments together
     } else {
-      blocks.push({ type: 'summary', text: trimmed })
+      summaryParts.push(seg)
+      i++
     }
   }
+
+  // Any trailing summary text
+  const remaining = summaryParts.join('\n').trim()
+  if (remaining) blocks.push({ type: 'summary', text: remaining })
+
   return blocks
 }
 
@@ -143,12 +161,12 @@ const SECTION_META: Record<string, { icon: string; color: string }> = {
 function DealBriefCard({ text, index }: { text: string; index: number }) {
   const lines = text.split('\n')
 
-  // Extract company name from DEAL BRIEF: line
-  const titleLine = lines.find((l) => l.includes('DEAL BRIEF:'))
-  const company = titleLine?.replace(/={3,}/g, '').replace('DEAL BRIEF:', '').trim() ?? `Deal ${index + 1}`
+  // First line is "DEAL BRIEF: Company Name"
+  const titleLine = lines[0] ?? ''
+  const company = titleLine.replace('DEAL BRIEF:', '').trim() || `Deal ${index + 1}`
 
-  // Parse into labelled sections
-  const sections = parseSections(lines)
+  // Parse remaining lines into labelled sections
+  const sections = parseSections(lines.slice(1))
 
   return (
     <div className="animate-slide-in rounded-xl border border-slate-700/60 bg-slate-900/60 overflow-hidden shadow-xl">
@@ -224,16 +242,16 @@ function parseSections(lines: string[]): Array<{ heading: string; rows: string[]
   let current: { heading: string; rows: string[] } | null = null
 
   for (const line of lines) {
-    // Skip separator and title lines
-    if (line.match(/^={10,}/) || line.includes('DEAL BRIEF:')) continue
-    // Section heading — all-caps line with no leading whitespace content
-    const headingMatch = line.match(/^([A-Z][A-Z &]+)$/)
-    if (headingMatch && SECTION_META[headingMatch[1].trim()]) {
+    // Skip any stray separator lines
+    if (/^={5,}/.test(line.trim())) continue
+    // Section heading: all-caps text (with optional spaces/&) matching a known section
+    const trimmed = line.trim()
+    if (SECTION_META[trimmed]) {
       if (current) sections.push(current)
-      current = { heading: headingMatch[1].trim(), rows: [] }
+      current = { heading: trimmed, rows: [] }
       continue
     }
-    if (current && line.trim()) current.rows.push(line)
+    if (current) current.rows.push(line)
   }
   if (current) sections.push(current)
   return sections
