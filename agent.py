@@ -13,7 +13,7 @@ from agent_scan_deal.tools import (
     format_intelligence_brief,
 )
 
-MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.5-flash")
+MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.0-flash")
 
 # Path to the deals file, relative to this package
 DEALS_FILE = str(Path(__file__).parent / "pitchbook_deals.xlsx")
@@ -54,13 +54,13 @@ Deal size convention: $5B = 5000, $1B = 1000, $500M = 500 (all in millions)
 MODE 2 — STARTUP INTELLIGENCE BRIEFING
 Use when the user asks to research a company, build an intelligence brief, or prepare for outreach.
 
-WORKFLOW:
-1. Call web_search_agent to find: CEO name and background, CFO name and background, all known funding rounds with dates/amounts/lead investors, Series D details, current estimated valuation
-2. Call web_search_agent again to find: recent news (past 12 months), growth signals, IPO timeline rumours, M&A activity, venture debt or credit facility announcements
-3. Synthesise all findings and call format_intelligence_brief() with the complete data
-4. Present the brief followed by 5 specific talking points tailored to the company's current stage
+WORKFLOW — complete in exactly 2 tool calls:
+1. Call web_search_agent ONCE with a single comprehensive query covering everything:
+   "[company] CEO CFO executives funding rounds Series D investors valuation IPO M&A venture debt 2024 2025"
+2. Immediately call format_intelligence_brief() with all gathered data — do NOT search again
 
 IMPORTANT for intelligence briefs:
+- Extract everything from the single search — do not make a second search call
 - Be specific with names, amounts, and dates — avoid vague answers
 - If CFO is not publicly known, state "Not publicly disclosed — recommend LinkedIn outreach"
 - Capital needs must be actionable: specify which product (venture debt, treasury management, IPO advisory, M&A support) and why it fits their stage
