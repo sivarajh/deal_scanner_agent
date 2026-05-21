@@ -13,7 +13,7 @@ from agent_scan_deal.tools import (
     format_intelligence_brief,
 )
 
-MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.5-flash-lite-preview-06-17")
+MODEL = os.getenv("DEAL_SCANNER_MODEL", "gemini-2.5-flash-lite")
 
 # Path to the deals file, relative to this package
 DEALS_FILE = str(Path(__file__).parent / "pitchbook_deals.xlsx")
