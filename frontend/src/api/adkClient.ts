@@ -60,17 +60,20 @@ export async function streamRun(
       try {
         const event = JSON.parse(raw)
 
-        // Skip tool-response events (role: "tool") — these are raw return values
-        // from function calls. The model re-emits the content in its own text
-        // response, so rendering both causes duplicate output.
-        const role = event?.content?.role
-        if (role === 'tool') continue
-
         const parts: unknown[] = event?.content?.parts ?? []
 
         for (const part of parts as Record<string, unknown>[]) {
-          // Skip functionResponse parts for the same reason
-          if (part.functionResponse) continue
+          // functionResponse: only surface output from format_intelligence_brief
+          // and process_deals — skip raw search results to avoid noise/duplicates.
+          if (part.functionResponse && typeof part.functionResponse === 'object') {
+            const fr = part.functionResponse as Record<string, unknown>
+            const name = fr.name as string
+            if (name === 'format_intelligence_brief' || name === 'process_deals') {
+              const output = (fr.response as Record<string, unknown>)?.output
+              if (typeof output === 'string' && output) onText(output)
+            }
+            continue
+          }
 
           // Plain text from the model
           if (typeof part.text === 'string' && part.text) {
