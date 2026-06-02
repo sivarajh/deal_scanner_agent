@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ADK Agent",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd .. && C:\\Users\\harih\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\Scripts\\adk.exe web --port 8090"],
+      "port": 8090
+    },
+    {
+      "name": "Vite UI",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 4000
+    }
+  ]
+}
