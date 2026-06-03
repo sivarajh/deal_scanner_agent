@@ -244,15 +244,15 @@ function BriefRow({ row }: { row: string }) {
   const kvMatch = row.match(/^\s{0,6}([A-Za-z][A-Za-z ]{1,28}?):\s+(.+)$/)
   if (kvMatch) {
     return (
-      <div className="flex gap-3 text-sm">
+      <div className="flex gap-3 text-sm min-w-0">
         <span className="text-slate-500 shrink-0 w-28 text-right">{kvMatch[1]}</span>
-        <span className="text-slate-200 flex-1">{kvMatch[2]}</span>
+        <span className="text-slate-200 flex-1 min-w-0 break-words whitespace-pre-wrap">{kvMatch[2]}</span>
       </div>
     )
   }
 
   // Plain line
-  return <p className="text-sm text-slate-400 leading-relaxed">{row.trim()}</p>
+  return <p className="text-sm text-slate-400 leading-relaxed break-words">{row.trim()}</p>
 }
 
 // ─── Section parser ───────────────────────────────────────────────────────────

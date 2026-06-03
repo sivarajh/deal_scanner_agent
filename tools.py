@@ -105,10 +105,25 @@ def process_deals(deals: list[dict], bankers: list[dict]) -> str:
     return "\n\n".join(briefs)
 
 
+def _clean(value: object, fallback: str = "N/A") -> str:
+    """Return a clean string value, stripping trailing ellipsis artifacts from Excel."""
+    s = str(value).strip() if value not in ("", None) else fallback
+    return s if s else fallback
+
+
 def generate_brief(deal: dict, banker: dict) -> str:
     """Generate a formatted deal brief for a banker."""
     size_display = f"${deal.get('Deal Size', 0):,.0f}M"
     valuation_display = f"${deal.get('Post Valuation', 0):,.0f}M" if deal.get("Post Valuation") else "N/A"
+
+    deal_type = _clean(deal.get('Deal Type'))
+    deal_type2 = _clean(deal.get('Deal Type 2'))
+    deal_type_full = f"{deal_type} — {deal_type2}" if deal_type2 != "N/A" else deal_type
+
+    vertical = _clean(deal.get('Verticals') or deal.get('Primary PitchBook Industry Code'))
+    synopsis = _clean(deal.get('Deal Synopsis'))
+    investors = _clean(deal.get('Investors'))
+    financing = _clean(deal.get('Financing Status'))
 
     brief = f"""
 ================================================================================
@@ -116,22 +131,22 @@ DEAL BRIEF: {deal.get('Company', 'Unknown')}
 ================================================================================
 
 COMPANY OVERVIEW
-  Company:     {deal.get('Company', 'N/A')}
-  Description: {deal.get('Description', 'N/A')}
-  Vertical:    {deal.get('Verticals', 'N/A') or deal.get('Primary PitchBook Industry Code', 'N/A')}
-  Status:      {deal.get('Business Status', 'N/A')}
+  Company:     {_clean(deal.get('Company'))}
+  Description: {_clean(deal.get('Description'))}
+  Vertical:    {vertical}
+  Status:      {_clean(deal.get('Business Status'))}
 
 DEAL DETAILS
   Deal Size:       {size_display}
   Post Valuation:  {valuation_display}
-  Deal Type:       {deal.get('Deal Type', 'N/A')} — {deal.get('Deal Type 2', 'N/A')}
-  Deal Date:       {deal.get('Deal Date', 'N/A')}
-  Deal Status:     {deal.get('Deal Status', 'N/A')}
-  Financing:       {deal.get('Financing Status', 'N/A')}
-  Synopsis:        {deal.get('Deal Synopsis', 'N/A')}
+  Deal Type:       {deal_type_full}
+  Deal Date:       {_clean(deal.get('Deal Date'))}
+  Deal Status:     {_clean(deal.get('Deal Status'))}
+  Financing:       {financing}
+  Synopsis:        {synopsis}
 
 INVESTORS
-  {deal.get('Investors', 'N/A')}
+  {investors}
 
 ASSIGNED BANKER
   Name:    {banker.get('name')}
@@ -140,11 +155,11 @@ ASSIGNED BANKER
   Reason:  {banker.get('match_reason')}
 
 SUGGESTED TALKING POINTS
-  1. Deal Positioning: This {deal.get('Deal Type', '')} at {size_display} represents a significant opportunity in the {deal.get('Verticals', '') or deal.get('Primary PitchBook Industry Code', 'N/A')} space.
-  2. Competitive Landscape: Key investors include {deal.get('Investors', 'undisclosed parties')} — understand their thesis and co-investment appetite.
+  1. Deal Positioning: This {deal_type} at {size_display} represents a significant opportunity in the {vertical} space.
+  2. Competitive Landscape: Key investors include {investors} — understand their thesis and co-investment appetite.
   3. Valuation Context: At {valuation_display} post-money, benchmark against comparable recent transactions in this vertical.
-  4. Strategic Fit: Assess how {deal.get('Company', 'the company')} aligns with our existing portfolio companies and LP relationships.
-  5. Timing: Deal is currently {deal.get('Deal Status', 'N/A')} — determine urgency and next steps for engagement.
+  4. Strategic Fit: Assess how {_clean(deal.get('Company'))} aligns with our existing portfolio companies and LP relationships.
+  5. Timing: Deal is currently {_clean(deal.get('Deal Status'))} — determine urgency and next steps for engagement.
 ================================================================================
 """
     return brief.strip()
