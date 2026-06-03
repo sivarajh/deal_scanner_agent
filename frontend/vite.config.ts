@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     port: 4000,
     proxy: {
-      '/apps': 'http://127.0.0.1:8080',
-      '/run_sse': 'http://127.0.0.1:8080',
-      '/run': 'http://127.0.0.1:8080',
+      '/apps': 'http://127.0.0.1:8090',
+      '/run_sse': 'http://127.0.0.1:8090',
+      '/run': 'http://127.0.0.1:8090',
     },
   },
 })
